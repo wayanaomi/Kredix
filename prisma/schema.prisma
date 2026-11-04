@@ -1,0 +1,434 @@
+// Kredix Prisma schema.
+// Dev/default datasource: SQLite (file-based, zero local setup — no Postgres server was
+// available in this environment; see docs/architecture.md and README.md for the Postgres
+// migration path). Money is always stored as integer minor units (kobo) — never floats.
+// SQLite has no native enum type in Prisma, so enum-like fields are typed String and the
+// allowed values are validated in the application layer (see src/lib/enums.ts) and documented
+// in comments below. Switching provider to "postgresql" lets these become real Prisma enums.
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider  = "postgresql"
+  url       = env("DATABASE_URL")
+  directUrl = env("DIRECT_URL")
+}
+
+// --- Identity & access -------------------------------------------------
+
+/// role: SME_OWNER | LENDER | ADMIN
+model User {
+  id           String    @id @default(cuid())
+  name         String
+  email        String?   @unique
+  phone        String?   @unique
+  passwordHash String
+  role         String    @default("SME_OWNER")
+  verifiedAt   DateTime?
+  createdAt    DateTime  @default(now())
+  updatedAt    DateTime  @updatedAt
+
+  businesses           Business[]
+  sessions             Session[]
+  verificationRecords  VerificationRecord[]
+  lenderProfile        Lender?
+  auditLogs            AuditLog[]
+  notifications        Notification[]
+  applicationStatusLog ApplicationStatusHistory[]
+  consentRecords       ConsentRecord[]
+  passportShares       PassportShare[]
+}
+
+/// channel: EMAIL | PHONE · purpose: REGISTRATION
+model VerificationRecord {
+  id          String    @id @default(cuid())
+  userId      String
+  user        User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  channel     String
+  purpose     String    @default("REGISTRATION")
+  code        String
+  attempts    Int       @default(0)
+  expiresAt   DateTime
+  consumedAt  DateTime?
+  createdAt   DateTime  @default(now())
+
+  @@index([userId])
+}
+
+model Session {
+  id        String   @id @default(cuid())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  tokenHash String   @unique
+  userAgent String?
+  ipAddress String?
+  expiresAt DateTime
+  createdAt DateTime @default(now())
+
+  @@index([userId])
+}
+
+// --- Business, storefront, catalogue ------------------------------------
+
+/// registrationStatus: REGISTERED | NOT_REGISTERED | IN_PROGRESS
+model Business {
+  id                  String   @id @default(cuid())
+  ownerId             String
+  owner               User     @relation(fields: [ownerId], references: [id], onDelete: Cascade)
+  name                String
+  industry            String?
+  location             String?
+  description         String?
+  tenureMonths        Int?
+  employeeCount       Int?
+  registrationStatus  String?
+  onboardingStep      String   @default("BUSINESS_DETAILS")
+  /// status: ACTIVE | SUSPENDED
+  status              String   @default("ACTIVE")
+  createdAt           DateTime @default(now())
+  updatedAt           DateTime @updatedAt
+
+  storefront            Storefront?
+  products              Product[]
+  orders                Order[]
+  transactions          Transaction[]
+  expenses              Expense[]
+  healthScores          BusinessHealthScore[]
+  recommendations       Recommendation[]
+  passport              FinancialPassport?
+  financingApplications FinancingApplication[]
+  notifications         Notification[]
+  consentRecords        ConsentRecord[]
+
+  @@index([ownerId])
+}
+
+model Storefront {
+  id          String    @id @default(cuid())
+  businessId  String    @unique
+  business    Business  @relation(fields: [businessId], references: [id], onDelete: Cascade)
+  slug        String    @unique
+  headline    String?
+  themeColor  String    @default("#5725B5")
+  logoUrl     String?
+  bannerUrl   String?
+  isPublished Boolean   @default(false)
+  publishedAt DateTime?
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+}
+
+model Product {
+  id            String    @id @default(cuid())
+  businessId    String
+  business      Business  @relation(fields: [businessId], references: [id], onDelete: Cascade)
+  name          String
+  description   String?
+  priceMinor    Int
+  currency      String    @default("NGN")
+  imageUrl      String?
+  isAvailable   Boolean   @default(true)
+  inventoryQty  Int?
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+  deletedAt     DateTime?
+
+  orderItems         OrderItem[]
+  inventoryMovements InventoryMovement[]
+
+  @@index([businessId])
+}
+
+/// reason: SALE | RESTOCK | ADJUSTMENT
+model InventoryMovement {
+  id             String   @id @default(cuid())
+  productId      String
+  product        Product  @relation(fields: [productId], references: [id], onDelete: Cascade)
+  quantityChange Int
+  reason         String
+  createdAt      DateTime @default(now())
+
+  @@index([productId])
+}
+
+model Customer {
+  id        String   @id @default(cuid())
+  name      String?
+  phone     String?
+  email     String?
+  createdAt DateTime @default(now())
+
+  orders Order[]
+}
+
+// --- Orders, payments, ledger -------------------------------------------
+
+/// status: PENDING | PAID | FAILED | CANCELLED
+model Order {
+  id          String   @id @default(cuid())
+  businessId  String
+  business    Business @relation(fields: [businessId], references: [id], onDelete: Cascade)
+  customerId  String?
+  customer    Customer? @relation(fields: [customerId], references: [id])
+  reference   String   @unique @default(cuid())
+  status      String   @default("PENDING")
+  totalMinor  Int
+  currency    String   @default("NGN")
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  items       OrderItem[]
+  payment     Payment?
+  transaction Transaction?
+
+  @@index([businessId])
+}
+
+model OrderItem {
+  id            String  @id @default(cuid())
+  orderId       String
+  order         Order   @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  productId     String
+  product       Product @relation(fields: [productId], references: [id])
+  quantity      Int
+  unitPriceMinor Int
+
+  @@index([orderId])
+}
+
+/// provider: MOCK_PSP (dev) · status: PENDING | SUCCESS | FAILED
+model Payment {
+  id                 String    @id @default(cuid())
+  orderId            String    @unique
+  order              Order     @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  provider           String
+  providerReference  String    @unique
+  status             String    @default("PENDING")
+  amountMinor        Int
+  verifiedAt         DateTime?
+  createdAt          DateTime  @default(now())
+  updatedAt          DateTime  @updatedAt
+}
+
+/// source: ONLINE_PAYMENT | MANUAL | OFFLINE_SYNC · syncStatus: SYNCED | PENDING | FAILED
+model Transaction {
+  id            String   @id @default(cuid())
+  businessId    String
+  business      Business @relation(fields: [businessId], references: [id], onDelete: Cascade)
+  orderId       String?  @unique
+  order         Order?   @relation(fields: [orderId], references: [id])
+  clientTxnId   String?  @unique
+  source        String
+  amountMinor   Int
+  productLabel  String?
+  occurredAt    DateTime
+  syncStatus    String   @default("SYNCED")
+  recordedById  String?
+  createdAt     DateTime @default(now())
+
+  @@index([businessId, occurredAt])
+}
+
+/// category: free text (e.g. RESTOCK, RENT, UTILITIES, OTHER)
+model Expense {
+  id          String   @id @default(cuid())
+  businessId  String
+  business    Business @relation(fields: [businessId], references: [id], onDelete: Cascade)
+  amountMinor Int
+  category    String
+  occurredAt  DateTime
+  note        String?
+  createdAt   DateTime @default(now())
+
+  @@index([businessId, occurredAt])
+}
+
+// --- Intelligence: score, recommendations, passport ---------------------
+
+/// eligibility: ELIGIBLE | NOT_ELIGIBLE
+model BusinessHealthScore {
+  id           String   @id @default(cuid())
+  businessId   String
+  business     Business @relation(fields: [businessId], references: [id], onDelete: Cascade)
+  score        Int?
+  version      String
+  eligibility  String
+  factorsJson  String
+  calculatedAt DateTime @default(now())
+
+  @@index([businessId, calculatedAt])
+}
+
+/// type: TOP_PRODUCT | REVENUE_DECLINE | INVENTORY_REVIEW | SALES_PERIOD | INCOMPLETE_RECORDS
+model Recommendation {
+  id          String   @id @default(cuid())
+  businessId  String
+  business    Business @relation(fields: [businessId], references: [id], onDelete: Cascade)
+  type        String
+  title       String
+  body        String
+  dataJson    String
+  periodStart DateTime?
+  periodEnd   DateTime?
+  createdAt   DateTime @default(now())
+
+  @@index([businessId, createdAt])
+}
+
+/// eligibility: ELIGIBLE | NOT_ELIGIBLE
+model FinancialPassport {
+  id           String   @id @default(cuid())
+  businessId   String   @unique
+  business     Business @relation(fields: [businessId], references: [id], onDelete: Cascade)
+  version      String
+  eligibility  String
+  dataJson     String
+  generatedAt  DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  shares PassportShare[]
+}
+
+model PassportShare {
+  id             String    @id @default(cuid())
+  passportId     String
+  passport       FinancialPassport @relation(fields: [passportId], references: [id], onDelete: Cascade)
+  tokenHash      String    @unique
+  createdById    String
+  createdBy      User      @relation(fields: [createdById], references: [id])
+  expiresAt      DateTime
+  revokedAt      DateTime?
+  lastAccessedAt DateTime?
+  createdAt      DateTime  @default(now())
+
+  accessLogs PassportAccessLog[]
+
+  @@index([passportId])
+}
+
+/// outcome: SUCCESS | DENIED_EXPIRED | DENIED_REVOKED | DENIED_INVALID
+model PassportAccessLog {
+  id         String        @id @default(cuid())
+  shareId    String
+  share      PassportShare @relation(fields: [shareId], references: [id], onDelete: Cascade)
+  outcome    String
+  ipAddress  String?
+  accessedAt DateTime      @default(now())
+
+  @@index([shareId])
+}
+
+/// type: PASSPORT_SHARE | FINANCING_REFERRAL
+model ConsentRecord {
+  id          String    @id @default(cuid())
+  businessId  String
+  business    Business  @relation(fields: [businessId], references: [id], onDelete: Cascade)
+  type        String
+  grantedById String
+  grantedBy   User      @relation(fields: [grantedById], references: [id])
+  scopeJson   String
+  grantedAt   DateTime  @default(now())
+  revokedAt   DateTime?
+
+  financingApplications FinancingApplication[]
+
+  @@index([businessId])
+}
+
+// --- Financing & lenders -------------------------------------------------
+
+/// status: SUBMITTED | UNDER_REVIEW | APPROVED | DECLINED | DISBURSED
+model FinancingApplication {
+  id                String   @id @default(cuid())
+  businessId        String
+  business          Business @relation(fields: [businessId], references: [id], onDelete: Cascade)
+  consentId         String
+  consent           ConsentRecord @relation(fields: [consentId], references: [id])
+  requestedAmountMinor Int
+  purpose           String
+  reference         String   @unique
+  status            String   @default("SUBMITTED")
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
+
+  referrals     LenderReferral[]
+  statusHistory ApplicationStatusHistory[]
+
+  @@index([businessId])
+}
+
+model Lender {
+  id           String  @id @default(cuid())
+  name         String
+  contactEmail String?
+  userId       String? @unique
+  user         User?   @relation(fields: [userId], references: [id])
+
+  referrals LenderReferral[]
+}
+
+/// status mirrors FinancingApplication.status at time of referral
+model LenderReferral {
+  id            String   @id @default(cuid())
+  applicationId String
+  application   FinancingApplication @relation(fields: [applicationId], references: [id], onDelete: Cascade)
+  lenderId      String
+  lender        Lender   @relation(fields: [lenderId], references: [id])
+  status        String   @default("SUBMITTED")
+  decisionNote  String?
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  @@unique([applicationId, lenderId])
+  @@index([lenderId])
+}
+
+model ApplicationStatusHistory {
+  id            String   @id @default(cuid())
+  applicationId String
+  application   FinancingApplication @relation(fields: [applicationId], references: [id], onDelete: Cascade)
+  fromStatus    String?
+  toStatus      String
+  changedById   String?
+  changedBy     User?    @relation(fields: [changedById], references: [id])
+  note          String?
+  createdAt     DateTime @default(now())
+
+  @@index([applicationId])
+}
+
+// --- Notifications & audit ------------------------------------------------
+
+/// channel: SMS | WHATSAPP | EMAIL · status: PENDING | SENT | FAILED | SKIPPED_NO_PROVIDER
+model Notification {
+  id          String    @id @default(cuid())
+  userId      String?
+  user        User?     @relation(fields: [userId], references: [id])
+  businessId  String?
+  business    Business? @relation(fields: [businessId], references: [id])
+  channel     String
+  template    String
+  payloadJson String
+  status      String    @default("PENDING")
+  createdAt   DateTime  @default(now())
+  sentAt      DateTime?
+
+  @@index([businessId])
+}
+
+model AuditLog {
+  id           String   @id @default(cuid())
+  actorUserId  String?
+  actor        User?    @relation(fields: [actorUserId], references: [id])
+  actorRole    String?
+  action       String
+  entityType   String
+  entityId     String?
+  metadataJson String?
+  createdAt    DateTime @default(now())
+
+  @@index([entityType, entityId])
+  @@index([actorUserId])
+}

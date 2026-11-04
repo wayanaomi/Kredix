@@ -1,0 +1,108 @@
+@import "tailwindcss";
+
+/*
+ * Kredix design tokens — deep violet brand anchor, electric mint for actions/progress,
+ * dark plum interface background. See src/lib/brand.ts for the single source of truth.
+ */
+:root {
+  --color-deep-violet: #4b1fa3;
+  --color-primary-violet: #5725b5;
+  --color-dark-plum: #1c0b35;
+  --color-electric-mint: #27e3a6;
+  --color-white: #ffffff;
+  --color-soft-lavender: #bda4ff;
+  --color-muted-lavender-text: #d9cdee;
+  --color-dark-bg: #120a20;
+
+  --background: #ffffff;
+  --foreground: #1c0b35;
+
+  --surface: #ffffff;
+  --surface-muted: #f7f5fc;
+  --border: #e6e0f5;
+
+  --brand-primary: var(--color-primary-violet);
+  --brand-secondary: var(--color-electric-mint);
+
+  --text-primary: #1c0b35;
+  --text-secondary: #5b5170;
+  --text-inverse: #ffffff;
+  --text-muted-on-dark: var(--color-muted-lavender-text);
+
+  --action-primary: var(--color-primary-violet);
+  --action-primary-hover: #481c99;
+  --action-secondary: var(--color-electric-mint);
+  --action-secondary-hover: #1fc48f;
+  --action-destructive: #d23b3b;
+  --action-destructive-hover: #b22f2f;
+
+  --state-success: #1fa971;
+  --state-warning: #c98a1b;
+  --state-error: #d23b3b;
+  --state-disabled: #c9c3d6;
+  --state-focus: var(--color-primary-violet);
+
+  --chart-1: var(--color-primary-violet);
+  --chart-2: var(--color-electric-mint);
+  --chart-3: var(--color-soft-lavender);
+  --chart-4: #c98a1b;
+  --chart-5: #1c0b35;
+}
+
+@theme inline {
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --color-surface: var(--surface);
+  --color-surface-muted: var(--surface-muted);
+  --color-border: var(--border);
+
+  --color-brand-primary: var(--brand-primary);
+  --color-brand-secondary: var(--brand-secondary);
+  --color-deep-violet: var(--color-deep-violet);
+  --color-dark-plum: var(--color-dark-plum);
+  --color-electric-mint: var(--color-electric-mint);
+  --color-soft-lavender: var(--color-soft-lavender);
+  --color-dark-bg: var(--color-dark-bg);
+
+  --color-text-primary: var(--text-primary);
+  --color-text-secondary: var(--text-secondary);
+  --color-text-inverse: var(--text-inverse);
+  --color-text-muted-on-dark: var(--text-muted-on-dark);
+
+  --color-action-primary: var(--action-primary);
+  --color-action-primary-hover: var(--action-primary-hover);
+  --color-action-secondary: var(--action-secondary);
+  --color-action-secondary-hover: var(--action-secondary-hover);
+  --color-action-destructive: var(--action-destructive);
+  --color-action-destructive-hover: var(--action-destructive-hover);
+
+  --color-state-success: var(--state-success);
+  --color-state-warning: var(--state-warning);
+  --color-state-error: var(--state-error);
+  --color-state-disabled: var(--state-disabled);
+  --color-state-focus: var(--state-focus);
+
+  --color-chart-1: var(--chart-1);
+  --color-chart-2: var(--chart-2);
+  --color-chart-3: var(--chart-3);
+  --color-chart-4: var(--chart-4);
+  --color-chart-5: var(--chart-5);
+
+  --font-sans: "Manrope", "Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+}
+
+body {
+  background: var(--background);
+  color: var(--text-primary);
+  font-family: var(--font-sans);
+}
+
+::selection {
+  background: var(--color-electric-mint);
+  color: var(--color-dark-plum);
+}
+
+:focus-visible {
+  outline: 2px solid var(--state-focus);
+  outline-offset: 2px;
+}
