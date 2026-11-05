@@ -8,6 +8,8 @@ const envSchema = z.object({
     .string()
     .optional()
     .transform((v) => v === "true"),
+  DEMO_OTP_ENABLED: z.string().optional().transform((v) => v === "true"),
+  DEMO_OTP_PHONE: z.string().optional().default(""),
   PSP_PROVIDER: z.string().default("mock"),
   PSP_SECRET_KEY: z.string().optional().default(""),
   PSP_PUBLIC_KEY: z.string().optional().default(""),

@@ -12,6 +12,7 @@ function VerifyForm() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const devCode = searchParams.get("devCode");
+  const demoMode = searchParams.get("demo") === "1";
   const [code, setCode] = useState(devCode ?? "");
   const [error, setError] = useState<string | null>(null);
   const [info, setInfo] = useState<string | null>(null);
@@ -33,7 +34,7 @@ function VerifyForm() {
   async function onResend() {
     setError(null);
     setInfo(null);
-    const { ok, data } = await apiFetch<{ devCode?: string }>("/api/auth/resend-otp", { method: "POST" });
+    const { ok, data } = await apiFetch<{ devCode?: string; demoOtpEnabled?: boolean }>("/api/auth/resend-otp", { method: "POST" });
     if (!ok) {
       setError(data.error ?? "Could not resend code");
       return;
@@ -41,8 +42,11 @@ function VerifyForm() {
     if (data.devCode) {
       setCode(data.devCode);
       setInfo("A new development code has been filled in below.");
+    } else if (data.demoOtpEnabled) {
+      setCode("123456");
+      setInfo("Demo verification code: 123456. No SMS was sent.");
     } else {
-      setInfo("A new code has been sent.");
+      setInfo("No SMS provider is configured yet. Contact the Kredix team for verification.");
     }
   }
 
@@ -55,9 +59,9 @@ function VerifyForm() {
             Enter the 6-digit code we sent to confirm it&apos;s really you.
           </p>
 
-          {devCode && (
+          {(devCode || demoMode) && (
             <Badge tone="warning" className="mt-4 block w-fit">
-              Development mode — no SMS provider configured. Your code is pre-filled below.
+              {demoMode ? "Kredix demo mode — enter 123456. No SMS was sent." : "Development mode — no SMS provider configured. Your code is pre-filled below."}
             </Badge>
           )}
 

@@ -3,7 +3,7 @@ import { prisma } from "@/lib/db";
 import { registerSchema } from "@/lib/validation/auth";
 import { hashPassword } from "@/lib/auth/password";
 import { createSession } from "@/lib/auth/session";
-import { issueVerificationCode } from "@/lib/auth/otp";
+import { issueVerificationCode, isApprovedProductionDemoPhone } from "@/lib/auth/otp";
 import { isRateLimited } from "@/lib/rate-limit";
 
 export async function POST(req: NextRequest) {
@@ -35,5 +35,5 @@ export async function POST(req: NextRequest) {
   await createSession(user.id, { userAgent: req.headers.get("user-agent") ?? undefined, ipAddress: ip });
   const { devCode } = await issueVerificationCode(user.id, "PHONE", phone);
 
-  return NextResponse.json({ userId: user.id, devCode });
+  return NextResponse.json({ userId: user.id, devCode, demoOtpEnabled: isApprovedProductionDemoPhone(phone) });
 }

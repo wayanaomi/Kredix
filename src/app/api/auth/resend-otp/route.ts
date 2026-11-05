@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { getSessionUser } from "@/lib/auth/session";
-import { issueVerificationCode } from "@/lib/auth/otp";
+import { issueVerificationCode, isApprovedProductionDemoPhone } from "@/lib/auth/otp";
 import { isRateLimited } from "@/lib/rate-limit";
 
 export async function POST() {
@@ -19,5 +19,5 @@ export async function POST() {
   }
 
   const { devCode } = await issueVerificationCode(user.id, "PHONE", user.phone ?? user.email ?? "");
-  return NextResponse.json({ sent: true, devCode });
+  return NextResponse.json({ sent: false, devCode, demoOtpEnabled: isApprovedProductionDemoPhone(user.phone ?? "") });
 }

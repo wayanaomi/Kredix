@@ -1,13 +1,39 @@
 import { randomInt } from "node:crypto";
 import { prisma } from "@/lib/db";
-import { devProvidersAllowed } from "@/lib/env";
+import { devProvidersAllowed, getEnv } from "@/lib/env";
 import { sendNotification, templates } from "@/lib/notifications";
 
 const OTP_TTL_MS = 1000 * 60 * 10; // 10 minutes
 const MAX_ATTEMPTS = 5;
 
-function generateCode(): string {
+function normalizePhone(value: string): string {
+  const digits = value.replace(/\D/g, "");
+
+  if (digits.length === 11 && digits.startsWith("0")) {
+    return `234${digits.slice(1)}`;
+  }
+
+  return digits;
+}
+
+export function isApprovedProductionDemoPhone(destination: string): boolean {
+  if (process.env.NODE_ENV !== "production") return false;
+
+  const env = getEnv();
+
+  return (
+    env.DEMO_OTP_ENABLED &&
+    env.DEMO_OTP_PHONE.length > 0 &&
+    normalizePhone(destination) === normalizePhone(env.DEMO_OTP_PHONE)
+  );
+}
+
+function generateCode(destination: string): string {
   if (process.env.NODE_ENV !== "production" && devProvidersAllowed()) {
+    return "123456";
+  }
+
+  if (isApprovedProductionDemoPhone(destination)) {
     return "123456";
   }
 
@@ -21,7 +47,7 @@ function generateCode(): string {
  * sent out-of-band.
  */
 export async function issueVerificationCode(userId: string, channel: "EMAIL" | "PHONE", destination: string) {
-  const code = generateCode();
+  const code = generateCode(destination);
   const expiresAt = new Date(Date.now() + OTP_TTL_MS);
 
   await prisma.verificationRecord.create({
