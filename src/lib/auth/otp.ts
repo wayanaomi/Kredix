@@ -7,6 +7,10 @@ const OTP_TTL_MS = 1000 * 60 * 10; // 10 minutes
 const MAX_ATTEMPTS = 5;
 
 function generateCode(): string {
+  if (process.env.NODE_ENV !== "production" && devProvidersAllowed()) {
+    return "123456";
+  }
+
   return String(randomInt(0, 1_000_000)).padStart(6, "0");
 }
 
