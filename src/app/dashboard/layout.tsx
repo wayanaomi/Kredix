@@ -3,6 +3,7 @@ import Link from "next/link";
 import { getSessionUser } from "@/lib/auth/session";
 import { brand } from "@/lib/brand";
 import { LogoutButton } from "@/components/LogoutButton";
+import { MobileDashboardNav } from "./MobileDashboardNav";
 
 const NAV = [
   { href: "/dashboard", label: "Overview" },
@@ -42,11 +43,7 @@ export default async function DashboardLayout({ children }: { children: React.Re
         </div>
       </aside>
       <div className="flex-1">
-        <header className="flex items-center justify-between border-b border-border bg-white px-4 py-3 md:hidden">
-          <Link href="/" className="text-lg font-extrabold text-brand-primary">
-            {brand.name}
-          </Link>
-        </header>
+        <MobileDashboardNav />
         <main className="p-4 md:p-8">{children}</main>
       </div>
     </div>
