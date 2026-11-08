@@ -19,7 +19,7 @@ export default function RegisterPage() {
     e.preventDefault();
     setError(null);
     setLoading(true);
-    const { ok, data } = await apiFetch<{ userId: string; devCode?: string; demoOtpEnabled?: boolean }>("/api/auth/register", {
+    const { ok, data } = await apiFetch<{ userId: string }>("/api/auth/register", {
       method: "POST",
       body: form,
     });
@@ -28,8 +28,7 @@ export default function RegisterPage() {
       setError(data.error ?? "Something went wrong. Please try again.");
       return;
     }
-    const query = data.devCode ? `?devCode=${data.devCode}` : data.demoOtpEnabled ? "?demo=1" : "";
-    router.push(`/verify${query}`);
+    router.push("/onboarding");
   }
 
   return (

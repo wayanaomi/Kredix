@@ -19,17 +19,13 @@ export default function LoginPage() {
     e.preventDefault();
     setError(null);
     setLoading(true);
-    const { ok, data } = await apiFetch<{ role: string; verified: boolean }>("/api/auth/login", {
+    const { ok, data } = await apiFetch<{ role: string }>("/api/auth/login", {
       method: "POST",
       body: form,
     });
     setLoading(false);
     if (!ok) {
       setError(data.error ?? "Could not log in");
-      return;
-    }
-    if (!data.verified) {
-      router.push("/verify");
       return;
     }
     if (data.role === "ADMIN") router.push("/admin");

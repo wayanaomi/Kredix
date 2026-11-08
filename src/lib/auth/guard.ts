@@ -14,7 +14,6 @@ export class AuthError extends Error {
 export async function requireUser(allowedRoles?: UserRole[]) {
   const user = await getSessionUser();
   if (!user) throw new AuthError("Authentication required", 401);
-  if (user.verifiedAt === null) throw new AuthError("Account not verified", 403);
   if (allowedRoles && !allowedRoles.includes(user.role as UserRole)) {
     throw new AuthError("You do not have permission to perform this action", 403);
   }

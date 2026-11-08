@@ -17,7 +17,6 @@ const NAV = [
 export default async function DashboardLayout({ children }: { children: React.ReactNode }) {
   const user = await getSessionUser();
   if (!user) redirect("/login");
-  if (!user.verifiedAt) redirect("/verify");
   if (user.role !== "SME_OWNER") redirect("/");
 
   return (
