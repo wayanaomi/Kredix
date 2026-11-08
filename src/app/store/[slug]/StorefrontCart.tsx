@@ -63,12 +63,21 @@ export function StorefrontCart({ slug, products }: { slug: string; products: Pro
         {products.map((p) => (
           <Card key={p.id}>
             <CardBody className="flex items-center justify-between gap-4">
-              <div>
-                <p className="font-semibold">{p.name}</p>
-                {p.description && <p className="text-sm text-text-secondary">{p.description}</p>}
-                <p className="mt-1 font-bold text-brand-primary">{p.priceFormatted}</p>
+              <div className="flex min-w-0 items-center gap-4">
+                {p.imageUrl && (
+                  <img
+                    src={p.imageUrl}
+                    alt={p.name}
+                    className="h-24 w-24 shrink-0 rounded-xl object-cover"
+                  />
+                )}
+                <div className="min-w-0">
+                  <p className="font-semibold">{p.name}</p>
+                  {p.description && <p className="text-sm text-text-secondary">{p.description}</p>}
+                  <p className="mt-1 font-bold text-brand-primary">{p.priceFormatted}</p>
+                </div>
               </div>
-              <div className="flex items-center gap-2">
+              <div className="flex shrink-0 items-center gap-2">
                 <Button
                   type="button"
                   size="sm"
@@ -104,28 +113,8 @@ export function StorefrontCart({ slug, products }: { slug: string; products: Pro
                 onChange={(e) => setCustomer((c) => ({ ...c, name: e.target.value }))}
               />
             </div>
-            <div>
-              <Label htmlFor="cemail">Email address</Label>
-              <Input
-                id="cemail"
-                type="email"
-                required
-                value={customer.email}
-                onChange={(e) => setCustomer((c) => ({ ...c, email: e.target.value }))}
-                placeholder="you@example.com"
-              />
-            </div>
-            <div>
-              <Label htmlFor="cemail">Email address</Label>
-              <Input
-                id="cemail"
-                type="email"
-                required
-                value={customer.email}
-                onChange={(e) => setCustomer((c) => ({ ...c, email: e.target.value }))}
-                placeholder="you@example.com"
-              />
-            </div>
+
+
             <div>
               <Label htmlFor="cemail">Email address</Label>
               <Input

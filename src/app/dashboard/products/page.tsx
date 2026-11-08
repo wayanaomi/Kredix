@@ -8,6 +8,7 @@ import { Badge } from "@/components/ui/Badge";
 import { EmptyState } from "@/components/ui/EmptyState";
 import { apiFetch } from "@/lib/api-client";
 import { formatNgn } from "@/lib/money";
+import { ImageUpload } from "@/components/ui/ImageUpload";
 
 interface Product {
   id: string;
@@ -102,12 +103,11 @@ export default function ProductsPage() {
               />
             </div>
             <div className="sm:col-span-2">
-              <Label htmlFor="imageUrl">Image URL (optional)</Label>
-              <Input
-                id="imageUrl"
+              <ImageUpload
+                label="Product image (optional)"
+                kind="product-image"
                 value={form.imageUrl}
-                onChange={(e) => setForm((f) => ({ ...f, imageUrl: e.target.value }))}
-                placeholder="https://..."
+                onChange={(url) => setForm((f) => ({ ...f, imageUrl: url }))}
               />
             </div>
             <div className="sm:col-span-2">
@@ -138,6 +138,13 @@ export default function ProductsPage() {
           {products.map((p) => (
             <Card key={p.id}>
               <CardBody className="space-y-2">
+                {p.imageUrl && (
+                  <img
+                    src={p.imageUrl}
+                    alt={p.name}
+                    className="h-44 w-full rounded-xl object-cover"
+                  />
+                )}
                 <div className="flex items-start justify-between">
                   <p className="font-semibold">{p.name}</p>
                   <Badge tone={p.isAvailable ? "success" : "neutral"}>

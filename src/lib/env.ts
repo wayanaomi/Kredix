@@ -18,6 +18,9 @@ const envSchema = z.object({
   NOTIFICATIONS_API_KEY: z.string().optional().default(""),
   NOTIFICATIONS_FROM: z.string().optional().default(""),
   NEXT_PUBLIC_APP_URL: z.string().default("http://localhost:3000"),
+  CLOUDINARY_CLOUD_NAME: z.string().optional().default(""),
+  CLOUDINARY_API_KEY: z.string().optional().default(""),
+  CLOUDINARY_API_SECRET: z.string().optional().default(""),
 });
 
 export type Env = z.infer<typeof envSchema>;

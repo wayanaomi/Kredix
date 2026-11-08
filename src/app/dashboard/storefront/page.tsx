@@ -6,6 +6,7 @@ import { Input, Label, HelpText, FieldError } from "@/components/ui/Field";
 import { Card, CardBody } from "@/components/ui/Card";
 import { Badge } from "@/components/ui/Badge";
 import { apiFetch } from "@/lib/api-client";
+import { ImageUpload } from "@/components/ui/ImageUpload";
 
 interface Storefront {
   id: string;
@@ -108,15 +109,12 @@ export default function StorefrontBuilderPage() {
                 placeholder="Quality Ankara fabrics, delivered fast"
               />
             </div>
-            <div>
-              <Label htmlFor="logoUrl">Logo image URL (optional)</Label>
-              <Input
-                id="logoUrl"
-                value={form.logoUrl}
-                onChange={(e) => setForm((f) => ({ ...f, logoUrl: e.target.value }))}
-                placeholder="https://..."
-              />
-            </div>
+            <ImageUpload
+              label="Storefront logo (optional)"
+              kind="business-logo"
+              value={form.logoUrl}
+              onChange={(url) => setForm((f) => ({ ...f, logoUrl: url }))}
+            />
             <div>
               <Label htmlFor="themeColor">Theme colour</Label>
               <input
